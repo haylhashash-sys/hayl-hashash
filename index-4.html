@@ -1,0 +1,982 @@
+<!--
+ ╔══════════════════════════════════════════════════════════════╗
+ ║           HAYL HASHASH — نظام إدارة المخازن V11             ║
+ ║                                                              ║
+ ║  المطور / المالك : Hayl Hashash                              ║
+ ║  الوصف          : إدارة مخازن وأرشفة                         ║
+ ║  تيليغرام       : @hayl_hashash  ← غيّر هذا لقناتك          ║
+ ║  الإصدار        : V11 — 2025                                 ║
+ ║                                                              ║
+ ║  © 2025 Hayl Hashash. جميع الحقوق محفوظة.                  ║
+ ║  يُحظر نسخ أو إعادة توزيع هذا البرنامج بدون إذن خطي.       ║
+ ╚══════════════════════════════════════════════════════════════╝
+-->
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="تطبيق إدارة مخازن وأرشفة — Hayl Hashash">
+    <meta name="author" content="Hayl Hashash">
+    <meta name="theme-color" content="#2563eb">
+    <title>HAYL HASHASH V11</title>
+    <link rel="manifest" href="manifest.json">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0f1a;
+            --dark: #060b14;
+            --blue: #2563eb;
+            --blue-light: #1e3a6e;
+            --blue-bright: #3b82f6;
+            --green: #10b981;
+            --red: #ef4444;
+            --card: #111827;
+            --card2: #161f30;
+            --border: #1e2d45;
+            --text: #e2e8f0;
+            --muted: #64748b;
+            --accent: #f0a500;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding-bottom: 90px;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        body.typing-mode { padding-bottom: 0; }
+
+        /* شريط الكتابة العائم */
+        #typing-bar {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            background: var(--dark);
+            border-bottom: 2px solid var(--blue-bright);
+            padding: 10px 16px;
+            z-index: 300;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+        }
+        #typing-bar.visible { display: flex; }
+        #typing-bar-title { font-size: 12px; font-weight: 800; color: var(--muted); letter-spacing: 1px; }
+        #typing-done-btn {
+            background: var(--blue); color: white; border: none;
+            border-radius: 10px; padding: 7px 18px;
+            font-family: 'Cairo', sans-serif; font-size: 13px; font-weight: 800; cursor: pointer;
+        }
+
+        body.typing-mode main { margin-top: 0; padding-top: 54px; }
+        body.typing-mode #items-area { min-height: calc(100dvh - 54px - 28px); border-radius: 0 0 24px 24px; }
+        body.typing-mode #dict-add-screen .card { min-height: calc(100dvh - 54px - 28px); }
+
+        header {
+            background: var(--dark); color: white;
+            padding: 28px 20px 44px;
+            border-radius: 0 0 32px 32px;
+            position: sticky; top: 0; z-index: 100;
+            transition: all 0.25s ease;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+            border-bottom: 1px solid var(--border);
+            max-height: 200px; overflow: hidden; opacity: 1;
+        }
+        header.typing-mode { max-height: 0; padding: 0; opacity: 0; border: none; box-shadow: none; }
+        .header-inner { max-width: 600px; margin: auto; text-align: center; }
+        header .badge { font-size: 9px; letter-spacing: 6px; color: var(--accent); font-weight: 700; margin-bottom: 4px; }
+        header h1 {
+            font-size: 26px; font-weight: 900; letter-spacing: -1px;
+            background: linear-gradient(135deg, #ffffff 0%, var(--accent) 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        header .header-sub { font-size: 10px; color: var(--muted); margin-top: 3px; letter-spacing: 1px; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeUp 0.25s ease-out; }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes slideUp { from { transform:translateY(100%); } to { transform:translateY(0); } }
+
+        main { max-width: 600px; margin: auto; padding: 14px; margin-top: -24px; }
+
+        .card {
+            background: var(--card); border-radius: 24px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+            overflow: hidden; border: 1px solid var(--border);
+        }
+        .card-header {
+            padding: 16px 20px; background: var(--card2);
+            border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .card-header h2 { font-weight: 800; font-size: 14px; color: var(--text); }
+
+        .suggestion-box {
+            position: fixed; top: 0; left: 0; right: 0;
+            background: var(--card); border-radius: 0 0 20px 20px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+            max-height: 55vh; overflow-y: auto; z-index: 9999;
+            border-bottom: 3px solid var(--blue-bright); display: none;
+        }
+        .suggestion-box.visible { display: block; }
+        .suggestion-box-header {
+            padding: 12px 18px 8px; font-size: 10px; font-weight: 800; letter-spacing: 2px;
+            background: var(--blue); color: white; display: flex; justify-content: space-between; align-items: center;
+        }
+        .suggestion-close {
+            background: rgba(255,255,255,0.2); border: none; color: white;
+            border-radius: 50%; width: 22px; height: 22px; font-size: 12px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .suggestion-item {
+            padding: 14px 18px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+            cursor: pointer; font-weight: 700; font-size: 15px; color: var(--text);
+        }
+        .suggestion-item:last-child { border-bottom: none; }
+        .suggestion-item:active { background: var(--blue-light); }
+        .suggestion-unit {
+            color: var(--blue-bright); font-size: 11px; font-weight: 600;
+            background: var(--blue-light); padding: 2px 8px; border-radius: 20px;
+        }
+
+        .textarea-wrap { position: relative; }
+        #items-area {
+            width: 100%; min-height: 320px; padding: 20px;
+            font-family: 'Cairo', sans-serif; font-size: 19px; line-height: 1.9;
+            border: none; background: var(--card); border-radius: 24px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.4); resize: none; color: var(--text);
+            border: 1px solid var(--border);
+        }
+        #items-area:focus { outline: 3px solid var(--blue-bright); }
+        #items-area::placeholder { color: var(--muted); font-size: 15px; }
+
+        .btn {
+            width: 100%; padding: 16px; border-radius: 16px;
+            font-family: 'Cairo', sans-serif; font-size: 16px; font-weight: 800;
+            border: none; cursor: pointer; transition: transform 0.12s; display: block; text-align: center;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: linear-gradient(135deg, #1a3a6e, #2563eb); color: white; box-shadow: 0 4px 20px rgba(37,99,235,0.4); }
+        .btn-blue { background: var(--blue); color: white; box-shadow: 0 4px 16px rgba(37,99,235,0.3); }
+        .btn-ghost { background: transparent; color: var(--muted); font-size: 13px; padding: 10px; }
+        .btn-red { background: var(--red); color: white; font-size: 13px; padding: 10px 16px; width: auto; border-radius: 12px; }
+
+        .form-group { margin-bottom: 14px; }
+        .form-label { font-size: 9px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; display: block; margin-bottom: 6px; }
+        .form-input {
+            width: 100%; padding: 14px 16px; background: var(--card2);
+            border: 2px solid var(--border); border-radius: 14px;
+            font-family: 'Cairo', sans-serif; font-size: 17px; font-weight: 700;
+            color: var(--blue-bright); transition: border-color 0.2s;
+        }
+        .form-input:focus { outline: none; border-color: var(--blue-bright); background: var(--dark); }
+
+        table { width: 100%; border-collapse: collapse; }
+        thead tr { background: var(--card2); }
+        th { padding: 12px 14px; font-size: 9px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; text-align: center; }
+        th:first-child { text-align: right; }
+        td { padding: 12px 14px; border-top: 1px solid var(--border); text-align: center; font-size: 13px; color: var(--text); }
+        td:first-child { text-align: right; font-weight: 700; }
+        tr:hover td { background: rgba(37,99,235,0.06); }
+        .stock-input {
+            width: 68px; padding: 7px; background: var(--blue-light);
+            border: 2px solid transparent; border-radius: 10px; text-align: center;
+            font-family: 'Cairo', sans-serif; font-weight: 800; font-size: 13px; color: var(--blue-bright);
+        }
+        .stock-input:focus { outline: none; border-color: var(--blue-bright); background: var(--dark); }
+        .badge-out { color: var(--red); font-weight: 700; }
+        .badge-rem { color: var(--blue-bright); font-weight: 900; }
+        .badge-neg { color: var(--red); font-weight: 900; }
+        .badge-unit { font-size: 9px; color: var(--muted); }
+
+        .report-card {
+            background: var(--card); border-radius: 18px;
+            box-shadow: 0 3px 16px rgba(0,0,0,0.4); overflow: hidden;
+            margin-bottom: 10px; border: 1px solid var(--border);
+            border-right: 5px solid var(--blue-bright);
+        }
+        .report-head { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
+        .report-party { font-weight: 800; font-size: 14px; color: var(--text); }
+        .report-meta { display: flex; align-items: center; gap: 8px; }
+        .report-sn { background: var(--blue-light); padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 800; color: var(--blue-bright); }
+        .report-date { font-size: 10px; color: var(--muted); }
+        .report-items { padding: 0 16px 12px; }
+        .report-item {
+            display: flex; justify-content: space-between; padding: 5px 10px;
+            font-size: 12px; font-weight: 700; color: var(--blue-bright);
+            background: var(--blue-light); border-radius: 8px; margin-bottom: 3px;
+        }
+        .delete-btn { background: none; border: none; cursor: pointer; color: var(--red); font-size: 15px; padding: 3px 7px; border-radius: 8px; opacity: 0.45; }
+        .delete-btn:active { opacity: 1; background: rgba(239,68,68,0.15); }
+
+        .stats-bar { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+        .stat-box { background: var(--card); border-radius: 14px; padding: 12px 8px; text-align: center; box-shadow: 0 2px 12px rgba(0,0,0,0.3); border: 1px solid var(--border); }
+        .stat-num { font-size: 20px; font-weight: 900; color: var(--blue-bright); }
+        .stat-lbl { font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+        #toast {
+            position: fixed; bottom: 96px; left: 50%; transform: translateX(-50%) translateY(16px);
+            background: var(--card); border: 1px solid var(--border); color: var(--text);
+            padding: 10px 22px; border-radius: 30px; font-size: 13px; font-weight: 700;
+            z-index: 9999; opacity: 0; transition: all 0.3s; pointer-events: none; white-space: nowrap;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: rgba(6,11,20,0.97); backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border); display: flex; z-index: 200;
+            padding: 6px 0 16px; transition: all 0.25s ease;
+            max-height: 80px; overflow: hidden; opacity: 1;
+        }
+        nav.typing-mode { max-height: 0; padding: 0; opacity: 0; border: none; }
+        .nav-btn {
+            flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 7px;
+            background: none; border: none; cursor: pointer; color: var(--muted); transition: color 0.2s;
+            font-family: 'Cairo', sans-serif;
+        }
+        .nav-btn .icon { font-size: 20px; transition: transform 0.2s; }
+        .nav-btn .label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+        .nav-btn.active-tab { color: var(--blue-bright); }
+        .nav-btn.active-tab .icon { transform: scale(1.15); }
+
+        .search-box { padding: 8px 14px; border-bottom: 1px solid var(--border); }
+        .search-input {
+            width: 100%; padding: 9px 12px; background: var(--card2);
+            border: 1px solid var(--border); border-radius: 10px;
+            font-family: 'Cairo', sans-serif; font-size: 13px; font-weight: 600; color: var(--text);
+        }
+        .search-input:focus { outline: 2px solid var(--blue-bright); }
+        .search-input::placeholder { color: var(--muted); }
+
+        .empty-state { text-align: center; padding: 50px 20px; color: var(--muted); }
+        .empty-state .icon { font-size: 42px; margin-bottom: 10px; }
+        .empty-state p { font-size: 13px; font-weight: 600; }
+
+        #save-status { font-size: 10px; font-weight: 700; color: var(--green); opacity: 0; transition: opacity 0.4s; }
+        .low-stock td:first-child::after { content: ' ⚠️'; font-size: 11px; }
+        .low-stock .badge-rem { color: var(--red); }
+
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+            z-index: 1000; align-items: flex-end; justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-box {
+            background: var(--card); border-radius: 26px 26px 0 0; padding: 24px 20px 32px;
+            width: 100%; max-width: 600px; animation: slideUp 0.25s ease-out;
+            border: 1px solid var(--border); border-bottom: none;
+        }
+        .modal-box h3 { font-size: 16px; font-weight: 800; margin-bottom: 6px; color: var(--text); }
+        .modal-box p { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+        .modal-btns { display: flex; gap: 8px; margin-top: 16px; }
+
+        .dict-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 9px 4px; border-bottom: 1px solid var(--border);
+            font-size: 13px; font-weight: 700; color: var(--text);
+        }
+        .dict-item:last-child { border-bottom: none; }
+        .dict-badge-base { background: var(--blue-light); color: var(--blue-bright); font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 20px; }
+        .dict-badge-learned { background: rgba(245,158,11,0.15); color: #f59e0b; font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 20px; }
+        .dict-badge-override { background: rgba(16,185,129,0.15); color: #10b981; font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 20px; }
+        .dict-del { background: none; border: none; color: var(--red); font-size: 14px; cursor: pointer; padding: 3px 7px; border-radius: 8px; opacity: 0.4; }
+        .dict-del:active { opacity: 1; background: rgba(239,68,68,0.15); }
+        .dict-edit { background: none; border: none; font-size: 14px; cursor: pointer; padding: 3px 7px; border-radius: 8px; opacity: 0.5; }
+        .dict-edit:active { opacity: 1; background: var(--blue-light); }
+
+        /* ===== تبويب "عن التطبيق" ===== */
+        .about-hero {
+            background: linear-gradient(135deg, var(--dark) 0%, #0d1929 100%);
+            border-radius: 24px; padding: 36px 24px 28px;
+            text-align: center; border: 1px solid var(--border);
+            margin-bottom: 12px; position: relative; overflow: hidden;
+        }
+        .about-hero::before {
+            content: ''; position: absolute; inset: 0;
+            background: radial-gradient(ellipse at top, rgba(37,99,235,0.15) 0%, transparent 70%);
+        }
+        .about-logo {
+            font-size: 52px; margin-bottom: 12px;
+            filter: drop-shadow(0 4px 16px rgba(37,99,235,0.5));
+        }
+        .about-title {
+            font-size: 22px; font-weight: 900; letter-spacing: -1px;
+            background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+            margin-bottom: 4px;
+        }
+        .about-version {
+            display: inline-block; background: var(--blue-light); color: var(--blue-bright);
+            font-size: 10px; font-weight: 800; padding: 3px 12px; border-radius: 20px;
+            letter-spacing: 2px; margin-bottom: 10px;
+        }
+        .about-desc { font-size: 13px; color: var(--muted); font-weight: 600; }
+        .about-info-card {
+            background: var(--card); border-radius: 18px; border: 1px solid var(--border);
+            overflow: hidden; margin-bottom: 10px;
+        }
+        .about-info-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 18px; border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+        .about-info-row:last-child { border-bottom: none; }
+        .about-info-label { color: var(--muted); font-weight: 700; font-size: 12px; }
+        .about-info-value { color: var(--text); font-weight: 800; font-size: 13px; }
+        .about-tg-btn {
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            background: linear-gradient(135deg, #0088cc, #006da8);
+            color: white; border: none; border-radius: 18px; padding: 16px;
+            font-family: 'Cairo', sans-serif; font-size: 15px; font-weight: 800;
+            width: 100%; cursor: pointer; margin-bottom: 10px;
+            box-shadow: 0 4px 20px rgba(0,136,204,0.4); text-decoration: none;
+        }
+        .about-tg-btn:active { transform: scale(0.97); }
+        .about-copyright {
+            text-align: center; padding: 16px;
+            font-size: 11px; color: var(--muted); font-weight: 600; line-height: 1.8;
+            background: var(--card); border-radius: 18px; border: 1px solid var(--border);
+        }
+        .about-copyright strong { color: var(--accent); }
+
+        /* زر تثبيت PWA */
+        #install-btn {
+            display: none; background: linear-gradient(135deg, #10b981, #059669);
+            color: white; border: none; border-radius: 18px; padding: 14px;
+            font-family: 'Cairo', sans-serif; font-size: 14px; font-weight: 800;
+            width: 100%; cursor: pointer; margin-bottom: 10px;
+            box-shadow: 0 4px 16px rgba(16,185,129,0.4);
+        }
+        #install-btn.show { display: block; }
+
+        .space-y > * + * { margin-top: 10px; }
+        .hidden { display: none !important; }
+        input[list] { color: var(--blue-bright); }
+    </style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<!-- شريط الكتابة للفاتورة -->
+<div id="typing-bar">
+    <span id="typing-bar-title">📝 الفاتورة</span>
+    <button id="typing-done-btn" onclick="doneTyping()">تم ✓</button>
+</div>
+
+<!-- شريط الكتابة للقاموس -->
+<div id="dict-typing-bar" style="display:none;position:fixed;top:0;left:0;right:0;background:var(--dark);border-bottom:2px solid var(--accent);padding:10px 16px;z-index:300;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,0.6);">
+    <span style="font-size:12px;font-weight:800;color:var(--muted);letter-spacing:1px;">🧠 القاموس</span>
+    <button onclick="doneDictTyping()" style="background:var(--accent);color:#000;border:none;border-radius:10px;padding:7px 18px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:800;cursor:pointer;">تم ✓</button>
+</div>
+
+<!-- مودال إضافة مادة جديدة -->
+<div id="new-word-modal" class="modal-overlay" onclick="this.classList.remove('show')">
+    <div class="modal-box" onclick="event.stopPropagation()">
+        <h3>➕ إضافة مادة للقاموس</h3>
+        <p style="margin-bottom:14px">المادة: <strong id="new-word-name" style="color:var(--blue-bright)"></strong></p>
+        <div class="form-group">
+            <label class="form-label">وحدة القياس</label>
+            <input id="new-word-unit" type="text" list="units-list" class="form-input" placeholder="كغ / علبة / قطعة / لتر ...">
+            <datalist id="units-list">
+                <option value="كغ"><option value="غرام"><option value="علبة">
+                <option value="قطعة"><option value="لتر"><option value="كرتون">
+                <option value="حبة"><option value="كيس"><option value="وحدة">
+            </datalist>
+        </div>
+        <div class="modal-btns">
+            <button class="btn btn-blue" style="flex:1" onclick="confirmAddNew()">حفظ في القاموس 🧠</button>
+            <button class="btn" style="flex:1;background:var(--card2);color:var(--muted);font-size:14px;border:1px solid var(--border)" onclick="document.getElementById('new-word-modal').classList.remove('show')">إلغاء</button>
+        </div>
+    </div>
+</div>
+
+<!-- مودال تأكيد الحذف -->
+<div id="confirm-modal" class="modal-overlay" onclick="closeModal()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+        <h3 id="modal-title">تأكيد</h3>
+        <p id="modal-msg" style="margin-bottom:0">هل أنت متأكد؟</p>
+        <div class="modal-btns">
+            <button class="btn btn-red" style="flex:1;font-size:15px" onclick="confirmModal()">نعم، احذف</button>
+            <button class="btn" style="flex:1;background:var(--card2);color:var(--muted);font-size:14px;border:1px solid var(--border)" onclick="closeModal()">إلغاء</button>
+        </div>
+    </div>
+</div>
+
+<!-- الترويسة -->
+<header id="main-header">
+    <div class="header-inner">
+        <p class="badge">PRO · SYSTEM · V11</p>
+        <h1>HAYL HASHASH</h1>
+        <p class="header-sub">إدارة مخازن وأرشفة</p>
+    </div>
+</header>
+
+<main>
+
+    <!-- تبويب الفواتير -->
+    <section id="content-entry" class="tab-content active">
+        <div id="step-1" class="space-y">
+            <div class="textarea-wrap">
+                <div id="suggest-list" class="suggestion-box"></div>
+                <textarea id="items-area"
+                    placeholder="اكتب اسم المادة ثم الكمية"
+                    oninput="handleAutoSuggest(this)"
+                    onfocus="setTypingMode(true)"
+                    onblur="setTimeout(()=>{ if(document.activeElement !== document.getElementById('items-area')) setTypingMode(false); }, 400)"></textarea>
+            </div>
+            <div id="preview-box" class="card" style="display:none">
+                <div class="card-header"><h2>📋 معاينة القائمة</h2></div>
+                <div id="preview-list" style="padding:12px 16px"></div>
+            </div>
+            <button class="btn btn-primary" onclick="goToStep2()">التالي: تحديد الجهة المستلمة ←</button>
+        </div>
+
+        <div id="step-2" class="hidden space-y">
+            <div class="card" style="padding:20px;border-top:5px solid var(--blue-bright)">
+                <p style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:2px;text-align:center;margin-bottom:18px">مرحلة الحفظ النهائي</p>
+                <div class="form-group">
+                    <label class="form-label">الجهة المستفيدة</label>
+                    <input type="text" id="party" list="party-options" placeholder="من المستلم؟" class="form-input">
+                    <datalist id="party-options"></datalist>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">تسلسل القيد</label>
+                    <input type="number" id="serial" class="form-input" style="color:var(--muted)">
+                </div>
+                <button class="btn btn-blue" onclick="finalSave()">حفظ وتثبيت البيانات ✅</button>
+                <button class="btn btn-ghost" onclick="goToStep1()">← تعديل قائمة المواد</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- تبويب المخزون -->
+    <section id="content-stock" class="tab-content">
+        <div class="card">
+            <div class="card-header">
+                <h2>📦 الرصيد الحالي</h2>
+                <span id="save-status">تم الحفظ ✓</span>
+            </div>
+            <div class="search-box">
+                <input type="text" class="search-input" placeholder="ابحث عن مادة..." oninput="filterStock(this.value)">
+            </div>
+            <div style="overflow-x:auto">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="text-align:right">المادة</th>
+                            <th>الوارد</th>
+                            <th>الصادر</th>
+                            <th style="background:var(--blue-light);color:var(--blue-bright)">المتبقي</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stock-body"></tbody>
+                </table>
+            </div>
+            <div id="stock-empty" class="empty-state" style="display:none">
+                <div class="icon">📦</div><p>لا توجد بيانات بعد</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- تبويب الأرشيف -->
+    <section id="content-reports" class="tab-content">
+        <div class="stats-bar" id="stats-bar"></div>
+        <input type="text" class="search-input" style="width:100%;margin-bottom:10px;padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:var(--card);font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,0.2);" placeholder="ابحث بالجهة أو رقم القيد..." oninput="filterReports(this.value)">
+        <div id="reports-container"></div>
+        <div id="reports-empty" class="empty-state" style="display:none">
+            <div class="icon">📋</div><p>لا يوجد أرشيف بعد</p>
+        </div>
+    </section>
+
+    <!-- تبويب القاموس -->
+    <section id="content-dict" class="tab-content">
+        <div id="dict-main-view">
+            <div class="card" style="margin-bottom:10px">
+                <div class="card-header">
+                    <h2>🧠 القاموس الذكي</h2>
+                    <span id="dict-count" style="font-size:11px;font-weight:700;color:var(--blue-bright)"></span>
+                </div>
+                <div class="search-box">
+                    <input type="text" class="search-input" placeholder="ابحث في القاموس..." oninput="renderDict(this.value)">
+                </div>
+                <div id="dict-list" style="padding:6px 14px 14px"></div>
+            </div>
+            <button class="btn btn-blue" style="font-size:15px;padding:15px" onclick="openDictAddScreen()">➕ إضافة مادة جديدة</button>
+        </div>
+
+        <div id="dict-add-screen" class="hidden">
+            <div style="display:flex;flex-direction:column;gap:10px">
+                <div class="card" style="padding:20px;border-top:5px solid var(--blue-bright)">
+                    <p id="dict-screen-title" style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:2px;text-align:center;margin-bottom:18px">إضافة / تعديل مادة</p>
+                    <div class="form-group">
+                        <label class="form-label">اسم المادة</label>
+                        <input id="manual-name" type="text" class="form-input" placeholder="اسم المادة" onfocus="setDictTypingMode(true)" onblur="setTimeout(()=>setDictTypingMode(false),400)">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">وحدة القياس</label>
+                        <input id="manual-unit" type="text" list="units-list" class="form-input" placeholder="كغ / علبة / قطعة / لتر ..." onfocus="setDictTypingMode(true)" onblur="setTimeout(()=>setDictTypingMode(false),400)">
+                    </div>
+                    <input type="hidden" id="edit-original-name">
+                    <button class="btn btn-blue" style="font-size:15px;padding:14px" onclick="manualAdd()">حفظ ✅</button>
+                    <button class="btn btn-ghost" onclick="closeDictAddScreen()">← رجوع للقاموس</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== تبويب عن التطبيق ===== -->
+    <section id="content-about" class="tab-content">
+
+        <!-- بطاقة هوية التطبيق -->
+        <div class="about-hero">
+            <div class="about-logo">📦</div>
+            <div class="about-title">HAYL HASHASH</div>
+            <div class="about-version">V11 · 2025</div>
+            <div class="about-desc">إدارة مخازن وأرشفة</div>
+        </div>
+
+        <!-- زر التثبيت (يظهر فقط إذا كان يمكن التثبيت) -->
+        <button id="install-btn" onclick="installPWA()">
+            📲 تثبيت التطبيق على هاتفك — مجاناً
+        </button>
+
+        <!-- معلومات التطبيق -->
+        <div class="about-info-card">
+            <div class="about-info-row">
+                <span class="about-info-label">المطوّر</span>
+                <span class="about-info-value">Hayl Hashash</span>
+            </div>
+            <div class="about-info-row">
+                <span class="about-info-label">الوصف</span>
+                <span class="about-info-value">إدارة مخازن وأرشفة</span>
+            </div>
+            <div class="about-info-row">
+                <span class="about-info-label">الإصدار</span>
+                <span class="about-info-value">V11 — 2025</span>
+            </div>
+            <div class="about-info-row">
+                <span class="about-info-label">يعمل بدون إنترنت</span>
+                <span class="about-info-value" style="color:var(--green)">✓ نعم</span>
+            </div>
+            <div class="about-info-row">
+                <span class="about-info-label">البيانات</span>
+                <span class="about-info-value">محفوظة على هاتفك فقط</span>
+            </div>
+        </div>
+
+        <!-- زر البريد الإلكتروني -->
+        <a class="about-tg-btn" href="mailto:haylhashash@gmail.com">
+            <span style="font-size:20px">✉️</span>
+            <span>haylhashash@gmail.com</span>
+        </a>
+
+        <!-- حقوق الملكية -->
+        <div class="about-copyright">
+            <strong>© 2025 Hayl Hashash</strong><br>
+            جميع الحقوق محفوظة · All Rights Reserved<br>
+            <span style="font-size:10px">يُحظر نسخ أو إعادة توزيع هذا التطبيق بدون إذن</span>
+        </div>
+
+    </section>
+
+</main>
+
+<!-- شريط التنقل السفلي — 5 تبويبات -->
+<nav>
+    <button class="nav-btn active-tab" id="nav-entry" onclick="switchTab('entry')">
+        <span class="icon">📝</span><span class="label">الفواتير</span>
+    </button>
+    <button class="nav-btn" id="nav-stock" onclick="switchTab('stock')">
+        <span class="icon">📦</span><span class="label">المخزون</span>
+    </button>
+    <button class="nav-btn" id="nav-reports" onclick="switchTab('reports')">
+        <span class="icon">📊</span><span class="label">الأرشيف</span>
+    </button>
+    <button class="nav-btn" id="nav-dict" onclick="switchTab('dict')">
+        <span class="icon">🧠</span><span class="label">القاموس</span>
+    </button>
+    <button class="nav-btn" id="nav-about" onclick="switchTab('about')">
+        <span class="icon">ℹ️</span><span class="label">عن</span>
+    </button>
+</nav>
+
+<script>
+// ============================================================
+// © 2025 Hayl Hashash — جميع الحقوق محفوظة
+// يُحظر نسخ أو إعادة توزيع بدون إذن خطي
+// ============================================================
+
+// ============================================================
+// PWA — تسجيل Service Worker
+// ============================================================
+let deferredPrompt = null;
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById('install-btn').classList.add('show');
+});
+function installPWA() {
+    if (!deferredPrompt) { showToast('التطبيق مثبَّت بالفعل ✓'); return; }
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(() => { deferredPrompt = null; document.getElementById('install-btn').classList.remove('show'); });
+}
+
+// ============================================================
+// DICTIONARY
+// ============================================================
+const BASE_DICTIONARY = {
+    "سكر":"كغ","رز":"كغ","برغل":"كغ","عدس":"كغ","فاصولياء":"كغ",
+    "طحين":"كغ","شعير":"كغ","زيت":"علبة","فول":"علبة","حمص":"علبة",
+    "مربى":"علبة","صلصة":"علبة","تونة":"علبة","معكرونه":"قطعة",
+    "شاي":"قطعة","جبنة":"قطعة","ملح":"قطعة","خل":"قطعة",
+    "صابون":"قطعة","مناديل":"قطعة","قهوة":"قطعة","بسكويت":"قطعة","حليب":"كرتون"
+};
+
+const DICT_KEY    = 'hh_learned_dict';
+const DB_KEY      = 'hh_v11_db';
+const DELETED_KEY = 'hh_deleted_base';
+
+function loadLearnedDict() { try { return JSON.parse(localStorage.getItem(DICT_KEY))||{}; } catch(e){ return {}; } }
+function saveLearnedDict()  { localStorage.setItem(DICT_KEY, JSON.stringify(learnedDict)); }
+function loadDeleted()      { try { return JSON.parse(localStorage.getItem(DELETED_KEY))||[]; } catch(e){ return []; } }
+function saveDeleted()      { localStorage.setItem(DELETED_KEY, JSON.stringify(deletedBase)); }
+
+let learnedDict = loadLearnedDict();
+let deletedBase  = loadDeleted();
+
+function getDictKeys()    { const base=Object.keys(BASE_DICTIONARY).filter(k=>!deletedBase.includes(k)); return [...new Set([...base,...Object.keys(learnedDict)])]; }
+function getDictValue(n)  { return learnedDict[n] ?? BASE_DICTIONARY[n]; }
+function isOverride(n)    { return (n in BASE_DICTIONARY)&&(n in learnedDict); }
+function isBaseOnly(n)    { return (n in BASE_DICTIONARY)&&!(n in learnedDict)&&!deletedBase.includes(n); }
+function isLearned(n)     { return !(n in BASE_DICTIONARY)&&(n in learnedDict); }
+
+function learnFromItems(items) {
+    let n=0;
+    items.forEach(item=>{
+        const inBase=(item.name in BASE_DICTIONARY)&&!deletedBase.includes(item.name);
+        if(!inBase&&!(item.name in learnedDict)){ learnedDict[item.name]=item.unit; n++; }
+    });
+    if(n>0){ saveLearnedDict(); showToast(`🧠 تم تعلم ${n} مادة جديدة`); }
+}
+
+// ============================================================
+// DATABASE
+// ============================================================
+function loadDB() { try { const r=localStorage.getItem(DB_KEY); return r?JSON.parse(r):defaultDB(); } catch(e){ return defaultDB(); } }
+function defaultDB() { return { history:[], parties:["المطبخ","المستودع العام","قسم التوزيع"], lastSerial:7001 }; }
+let db = loadDB();
+function saveDB() { try { localStorage.setItem(DB_KEY,JSON.stringify(db)); } catch(e){ showToast("⚠️ فشل الحفظ: المساحة ممتلئة"); } }
+
+// ============================================================
+// UI HELPERS
+// ============================================================
+function showToast(msg,ms=2500) {
+    const t=document.getElementById('toast');
+    t.textContent=msg; t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'),ms);
+}
+
+let modalCb=null;
+function openModal(title,msg,cb){ document.getElementById('modal-title').textContent=title; document.getElementById('modal-msg').textContent=msg; document.getElementById('confirm-modal').classList.add('show'); modalCb=cb; }
+function closeModal(){ document.getElementById('confirm-modal').classList.remove('show'); modalCb=null; }
+function confirmModal(){ if(modalCb) modalCb(); closeModal(); }
+
+function setTypingMode(on) {
+    const header=document.getElementById('main-header');
+    const nav=document.querySelector('nav');
+    const bar=document.getElementById('typing-bar');
+    header.classList.toggle('typing-mode',on);
+    nav.classList.toggle('typing-mode',on);
+    bar.classList.toggle('visible',on);
+    document.body.classList.toggle('typing-mode',on);
+}
+function doneTyping() { document.getElementById('items-area').blur(); setTypingMode(false); closeSuggest(); }
+
+// ============================================================
+// TABS
+// ============================================================
+function switchTab(id) {
+    document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active-tab'));
+    document.getElementById('content-'+id).classList.add('active');
+    document.getElementById('nav-'+id).classList.add('active-tab');
+    if(id==='stock')   renderStock();
+    if(id==='reports') renderReports();
+    if(id==='dict')    renderDict();
+}
+
+// ============================================================
+// SUGGEST
+// ============================================================
+function handleAutoSuggest(el) {
+    const lines=el.value.split('\n'), last=lines[lines.length-1].trim();
+    const box=document.getElementById('suggest-list');
+    updatePreview(el.value);
+    const parts=last.split(/\s+/), nameOnly=parts[0];
+    if(parts.length>1&&!isNaN(parseFloat(parts[1]))){ box.classList.remove('visible'); return; }
+    if(nameOnly.length>=1){
+        const matches=getDictKeys().filter(k=>k.startsWith(nameOnly));
+        if(matches.length>0){
+            box.innerHTML=`<div class="suggestion-box-header"><span>🔍 اختر مادة</span><button class="suggestion-close" onclick="closeSuggest()">✕</button></div>`
+                +matches.map(m=>{const learned=(m in learnedDict)&&!(m in BASE_DICTIONARY); return `<div class="suggestion-item" onclick="selectItem('${m}')"><span>${m}${learned?' <span style="font-size:9px;color:#f59e0b">★</span>':''}</span><span class="suggestion-unit">${getDictValue(m)}</span></div>`;}).join('');
+            box.classList.add('visible'); return;
+        }
+        if(nameOnly.length>=2){
+            box.innerHTML=`<div class="suggestion-box-header"><span>📝 مادة غير موجودة في القاموس</span><button class="suggestion-close" onclick="closeSuggest()">✕</button></div>
+                <div class="suggestion-item" style="cursor:default;background:rgba(245,158,11,0.08);"><span style="color:#f59e0b;font-size:13px">"${nameOnly}"</span><button onclick="promptAddNew('${nameOnly}')" style="background:#f59e0b;color:white;border:none;padding:5px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Cairo',sans-serif">أضف للقاموس</button></div>`;
+            box.classList.add('visible'); return;
+        }
+    }
+    box.classList.remove('visible');
+}
+
+function closeSuggest() { document.getElementById('suggest-list').classList.remove('visible'); }
+
+function selectItem(name) {
+    const el=document.getElementById('items-area');
+    const lines=el.value.split('\n');
+    lines[lines.length-1]=name+' ';
+    el.value=lines.join('\n');
+    closeSuggest(); el.focus(); updatePreview(el.value);
+}
+
+function promptAddNew(name) {
+    closeSuggest();
+    document.getElementById('new-word-name').textContent=name;
+    document.getElementById('new-word-unit').value='';
+    document.getElementById('new-word-modal').classList.add('show');
+}
+
+function confirmAddNew() {
+    const name=document.getElementById('new-word-name').textContent.trim();
+    const unit=document.getElementById('new-word-unit').value.trim()||'وحدة';
+    if(!name) return;
+    learnedDict[name]=unit; saveLearnedDict();
+    document.getElementById('new-word-modal').classList.remove('show');
+    showToast(`🧠 تمت إضافة "${name}" (${unit}) للقاموس`);
+    selectItem(name);
+}
+
+// ============================================================
+// PARSE & PREVIEW
+// ============================================================
+function parseLines(raw) {
+    const items=[];
+    raw.split('\n').forEach(line=>{
+        line=line.trim(); if(!line) return;
+        const parts=line.split(/[\s:,،]+/);
+        if(parts.length>=2){ const name=parts[0],qty=parseFloat(parts[1]); if(name&&!isNaN(qty)&&qty>0) items.push({name,qty,unit:getDictValue(name)||'وحدة'}); }
+    });
+    return items;
+}
+
+function updatePreview(raw) {
+    const items=parseLines(raw), box=document.getElementById('preview-box'), list=document.getElementById('preview-list');
+    if(!items.length){ box.style.display='none'; return; }
+    box.style.display='block';
+    list.innerHTML=items.map(i=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;"><span style="color:var(--text)">${i.name}</span><span style="color:var(--blue-bright)">${i.qty} <span style="font-size:10px;color:var(--muted)">${i.unit}</span></span></div>`).join('');
+}
+
+// ============================================================
+// STEPS
+// ============================================================
+function goToStep2() {
+    const items=parseLines(document.getElementById('items-area').value.trim());
+    if(!items.length){ showToast("⚠️ أدخل مادة واحدة على الأقل"); return; }
+    document.getElementById('step-1').classList.add('hidden');
+    document.getElementById('step-2').classList.remove('hidden');
+    document.getElementById('party-options').innerHTML=db.parties.map(p=>`<option value="${p}">`).join('');
+    document.getElementById('serial').value=db.lastSerial;
+    document.getElementById('party').value='';
+    document.getElementById('party').focus();
+}
+function goToStep1() { document.getElementById('step-2').classList.add('hidden'); document.getElementById('step-1').classList.remove('hidden'); }
+
+// ============================================================
+// SAVE
+// ============================================================
+function finalSave() {
+    const raw=document.getElementById('items-area').value.trim();
+    const party=document.getElementById('party').value.trim();
+    const sn=parseInt(document.getElementById('serial').value)||db.lastSerial;
+    if(!party){ showToast("⚠️ يرجى تحديد الجهة"); return; }
+    const items=parseLines(raw);
+    if(!items.length){ showToast("⚠️ لا توجد مواد صالحة"); return; }
+    const date=new Date().toLocaleDateString('ar-IQ');
+    items.forEach(item=>db.history.push({id:Date.now()+Math.random(),sn,party,name:item.name,qty:item.qty,type:'out',unit:item.unit,date}));
+    db.lastSerial=sn+1;
+    if(!db.parties.includes(party)) db.parties.push(party);
+    learnFromItems(items); saveDB();
+    showToast(`✅ تم حفظ ${items.length} مادة للقيد #${sn}`);
+    setTimeout(()=>{ document.getElementById('items-area').value=''; document.getElementById('preview-box').style.display='none'; goToStep1(); },1200);
+}
+
+// ============================================================
+// STOCK
+// ============================================================
+function buildSummary() {
+    const s={};
+    getDictKeys().forEach(m=>s[m]={in:0,out:0,unit:getDictValue(m)});
+    db.history.forEach(h=>{ if(!s[h.name]) s[h.name]={in:0,out:0,unit:h.unit}; s[h.name][h.type]+=h.qty; });
+    return s;
+}
+
+let stockFilter='';
+function filterStock(v){ stockFilter=v.trim(); renderStock(); }
+
+function renderStock() {
+    const s=buildSummary(),body=document.getElementById('stock-body'),empty=document.getElementById('stock-empty');
+    const entries=Object.entries(s).filter(([n])=>!stockFilter||n.includes(stockFilter)).sort((a,b)=>a[0].localeCompare(b[0],'ar'));
+    if(!entries.length){ body.innerHTML=''; empty.style.display='block'; return; }
+    empty.style.display='none';
+    body.innerHTML=entries.map(([name,d])=>{
+        const rem=d.in-d.out, low=rem<=5&&d.in>0;
+        return `<tr class="${low?'low-stock':''}"><td>${name}</td><td><input type="number" value="${d.in}" min="0" onchange="autoSaveStock('${name}',this.value)" class="stock-input"></td><td class="badge-out">${d.out}</td><td class="${rem<0?'badge-neg':'badge-rem'}">${rem} <span class="badge-unit">${d.unit}</span></td></tr>`;
+    }).join('');
+}
+
+function autoSaveStock(name,val) {
+    const v=parseFloat(val); if(isNaN(v)||v<0) return;
+    const s=buildSummary(),cur=s[name]?s[name].in:0,diff=v-cur;
+    if(!diff) return;
+    db.history.push({id:Date.now()+Math.random(),sn:0,party:'جرد يدوي',name,qty:Math.abs(diff),type:diff>0?'in':'out',unit:getDictValue(name)||'وحدة',date:new Date().toLocaleDateString('ar-IQ')});
+    saveDB();
+    const st=document.getElementById('save-status');
+    st.style.opacity='1'; setTimeout(()=>st.style.opacity='0',2500);
+}
+
+// ============================================================
+// REPORTS
+// ============================================================
+let reportFilter='';
+function filterReports(v){ reportFilter=v.trim(); renderReports(); }
+
+function renderReports() {
+    renderStats();
+    const con=document.getElementById('reports-container'),empty=document.getElementById('reports-empty');
+    const groups={};
+    db.history.filter(h=>h.sn>0).forEach(h=>{ const k=`${h.sn}__${h.party}`; if(!groups[k]) groups[k]={sn:h.sn,party:h.party,date:h.date,items:[],key:k}; groups[k].items.push(h); });
+    let list=Object.values(groups).reverse();
+    if(reportFilter) list=list.filter(g=>g.party.includes(reportFilter)||String(g.sn).includes(reportFilter));
+    if(!list.length){ con.innerHTML=''; empty.style.display='block'; return; }
+    empty.style.display='none';
+    con.innerHTML=list.map(g=>`<div class="report-card"><div class="report-head"><div><div class="report-party">${g.party}</div><div class="report-date">${g.date}</div></div><div class="report-meta"><span class="report-sn">#${g.sn}</span><button class="delete-btn" onclick="deleteGroup('${g.key}')">🗑</button></div></div><div class="report-items">${g.items.map(i=>`<div class="report-item"><span>${i.name}</span><span>${i.qty} <span style="font-size:10px;opacity:0.6">${i.unit}</span></span></div>`).join('')}</div></div>`).join('');
+}
+
+function deleteGroup(key) {
+    openModal('حذف القيد','سيتم حذف هذا القيد نهائياً. هل أنت متأكد؟',()=>{
+        const [sn,party]=key.split('__');
+        db.history=db.history.filter(h=>!(String(h.sn)===sn&&h.party===party));
+        saveDB(); renderReports(); showToast('🗑 تم حذف القيد');
+    });
+}
+
+function renderStats() {
+    const forms=new Set(db.history.filter(h=>h.sn>0).map(h=>h.sn)).size;
+    const items=db.history.filter(h=>h.sn>0).length;
+    const parties=new Set(db.history.filter(h=>h.sn>0).map(h=>h.party)).size;
+    document.getElementById('stats-bar').innerHTML=`<div class="stat-box"><div class="stat-num">${forms}</div><div class="stat-lbl">فاتورة</div></div><div class="stat-box"><div class="stat-num">${items}</div><div class="stat-lbl">قيد مادة</div></div><div class="stat-box"><div class="stat-num">${parties}</div><div class="stat-lbl">جهة</div></div>`;
+}
+
+// ============================================================
+// DICTIONARY MANAGEMENT
+// ============================================================
+function renderDict(filter='') {
+    const keys=getDictKeys().filter(k=>!filter||k.includes(filter)).sort((a,b)=>a.localeCompare(b,'ar'));
+    const total=getDictKeys().length, learned=Object.keys(learnedDict).filter(k=>!(k in BASE_DICTIONARY)).length;
+    document.getElementById('dict-count').textContent=`${total} مادة · ${learned} متعلَّمة`;
+    if(!keys.length){ document.getElementById('dict-list').innerHTML='<p style="text-align:center;color:var(--muted);padding:20px;font-size:13px">لا توجد نتائج</p>'; return; }
+    document.getElementById('dict-list').innerHTML=keys.map(name=>{
+        const unit=getDictValue(name);
+        let badge,actions;
+        if(isLearned(name)){
+            badge=`<span class="dict-badge-learned">★ متعلَّم</span>`;
+            actions=`<button class="dict-edit" onclick="editDictItem('${name}','${unit}')">✏️</button><button class="dict-del" onclick="deleteFromDict('${name}',false)">✕</button>`;
+        } else if(isOverride(name)){
+            badge=`<span class="dict-badge-override">✏ معدَّل</span>`;
+            actions=`<button class="dict-edit" onclick="editDictItem('${name}','${unit}')">✏️</button><button class="dict-del" onclick="deleteFromDict('${name}',true)">✕</button>`;
+        } else {
+            badge=`<span class="dict-badge-base">أساسي</span>`;
+            actions=`<button class="dict-edit" onclick="editDictItem('${name}','${unit}')">✏️</button><button class="dict-del" onclick="deleteFromDict('${name}',true)">✕</button>`;
+        }
+        return `<div class="dict-item"><span>${name}</span><div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px;color:var(--muted);font-weight:600">${unit}</span>${badge}${actions}</div></div>`;
+    }).join('');
+}
+
+function deleteFromDict(name,isBaseItem) {
+    if(isBaseItem){
+        openModal('حذف مادة',`حذف "${name}" من القاموس نهائياً؟`,()=>{
+            if(!deletedBase.includes(name)) deletedBase.push(name); saveDeleted();
+            delete learnedDict[name]; saveLearnedDict(); renderDict(); showToast(`🗑 تم حذف "${name}"`);
+        });
+    } else { delete learnedDict[name]; saveLearnedDict(); renderDict(); showToast(`🗑 تم حذف "${name}" من القاموس`); }
+}
+
+function editDictItem(name,unit) {
+    document.getElementById('edit-original-name').value=name;
+    document.getElementById('manual-name').value=name;
+    document.getElementById('manual-unit').value=unit;
+    document.getElementById('dict-screen-title').textContent=`تعديل مادة: ${name}`;
+    openDictAddScreen();
+}
+
+function openDictAddScreen() {
+    document.getElementById('dict-main-view').classList.add('hidden');
+    document.getElementById('dict-add-screen').classList.remove('hidden');
+    document.getElementById('main-header').classList.add('typing-mode');
+    document.querySelector('nav').classList.add('typing-mode');
+    document.getElementById('dict-typing-bar').style.display='flex';
+    document.body.classList.add('typing-mode');
+    setTimeout(()=>document.getElementById('manual-name').focus(),100);
+}
+
+function closeDictAddScreen() {
+    document.getElementById('dict-add-screen').classList.add('hidden');
+    document.getElementById('dict-main-view').classList.remove('hidden');
+    document.getElementById('edit-original-name').value='';
+    document.getElementById('manual-name').value='';
+    document.getElementById('manual-unit').value='';
+    document.getElementById('dict-screen-title').textContent='إضافة / تعديل مادة';
+    doneDictTyping(); renderDict();
+}
+
+function setDictTypingMode(on) { if(!on) return; }
+
+function doneDictTyping() {
+    document.getElementById('main-header').classList.remove('typing-mode');
+    document.querySelector('nav').classList.remove('typing-mode');
+    document.getElementById('dict-typing-bar').style.display='none';
+    document.body.classList.remove('typing-mode');
+    document.getElementById('manual-name').blur();
+    document.getElementById('manual-unit').blur();
+}
+
+function manualAdd() {
+    const originalName=document.getElementById('edit-original-name').value.trim();
+    const name=document.getElementById('manual-name').value.trim();
+    const unit=document.getElementById('manual-unit').value.trim()||'وحدة';
+    if(!name){ showToast('⚠️ أدخل اسم المادة'); return; }
+    if(originalName&&originalName!==name){
+        if(originalName in learnedDict) delete learnedDict[originalName];
+        if(originalName in BASE_DICTIONARY&&!deletedBase.includes(originalName)){ deletedBase.push(originalName); saveDeleted(); }
+    }
+    learnedDict[name]=unit; saveLearnedDict();
+    if(deletedBase.includes(name)){ deletedBase=deletedBase.filter(x=>x!==name); saveDeleted(); }
+    showToast(`✅ تم حفظ "${name}" (${unit})`); closeDictAddScreen();
+}
+
+window.onload = () => { setTypingMode(false); };
+</script>
+</body>
+</html>
